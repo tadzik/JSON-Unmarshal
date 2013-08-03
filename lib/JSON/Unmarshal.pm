@@ -35,6 +35,10 @@ multi _unmarshal($json, Any $x) {
     return $type.new(|%args)
 }
 
+multi _unmarshal($json, @x) {
+    return $json.list.map: { _unmarshal($_, @x.of) }
+}
+
 multi _unmarshal($json, Mu) {
     return $json
 }
