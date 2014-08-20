@@ -26,13 +26,12 @@ multi _unmarshal($json, Str) {
 }
 
 multi _unmarshal($json, Any $x) {
-    my $type = $x.WHAT;
     my %args;
-    for $type.^attributes -> $attr {
+    for $x.^attributes -> $attr {
         my $name = $attr.name.substr(2);
         %args{$name} = _unmarshal($json{$name}, $attr.type);
     }
-    return $type.new(|%args)
+    return $x.new(|%args)
 }
 
 multi _unmarshal($json, @x) {
