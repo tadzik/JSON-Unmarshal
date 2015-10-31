@@ -12,6 +12,15 @@ multi _unmarshal($json, Int) {
     panic($json, Int)
 }
 
+multi _unmarshal($json, Rat) {
+   CATCH {
+      default {
+         panic($json, Rat);
+      }
+   }
+   return Rat($json);
+}
+
 multi _unmarshal($json, Numeric) {
     if $json ~~ Numeric {
         return Num($json)
