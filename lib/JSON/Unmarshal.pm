@@ -35,7 +35,21 @@ multi _unmarshal($json, Any $x) {
 }
 
 multi _unmarshal($json, @x) {
-    return $json.list.map: { _unmarshal($_, @x.of) }
+    my @ret;
+    for $json.list -> $value {
+       my $type = @x.of =:= Any ?? $value.WHAT !! @x.of;
+       @ret.push(_unmarshal($value, $type));
+    }
+    return @ret
+}
+
+multi _unmarshal($json, %x) {
+   my %ret;
+   for $json.kv -> $key, $value {
+      my $type = %x.of =:= Any ?? $value.WHAT !! %x.of;
+      %ret{$key} = _unmarshal($value, $type);
+   }
+   return %ret;
 }
 
 multi _unmarshal($json, Mu) {
