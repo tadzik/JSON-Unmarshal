@@ -44,6 +44,19 @@ subtest {
     is $ret.int, 42, "and the correct value";
 
 }, "Int attribute";
+subtest {
+    my class BoolClass {
+        has Bool $.bool;
+    }
+
+    my $json = '{ "bool" : true }';
+    my $ret;
+
+    lives-ok { $ret = unmarshal($json, BoolClass) }, "unmarshal with Bool typed attribute";
+    isa-ok $ret, BoolClass, "it's the right type";
+    is $ret.bool, True, "and the correct value";
+
+}, "Bool attribute";
 
 done-testing;
 

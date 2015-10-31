@@ -34,6 +34,15 @@ multi _unmarshal($json, Str) {
     }
 }
 
+multi _unmarshal($json, Bool) {
+   CATCH {
+      default {
+         panic($json, Bool);
+      }
+   }
+   return Bool($json);
+}
+
 multi _unmarshal($json, Any $x) {
     my %args;
     for $x.^attributes -> $attr {
