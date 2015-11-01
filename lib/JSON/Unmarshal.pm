@@ -47,7 +47,9 @@ multi _unmarshal($json, Any $x) {
     my %args;
     for $x.^attributes -> $attr {
         my $name = $attr.name.substr(2);
-        %args{$name} = _unmarshal($json{$name}, $attr.type);
+        if $json{$name}:exists {
+           %args{$name} = _unmarshal($json{$name}, $attr.type);
+        }
     }
     return $x.new(|%args)
 }
