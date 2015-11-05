@@ -32,5 +32,5 @@ subtest {
     is $obj.version, Version.new("0.0.1"), "and has the right value";
 }, "unmarshalled-by trait with Method name";
 
-
+done-testing;
 # vim: expandtab shiftwidth=4 ft=perl6
