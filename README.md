@@ -21,6 +21,29 @@ Make JSON from an Object (the opposite of JSON::Marshal)
 
 ```
 
+It is also possible to use a trait to control how the value is unmarshalled:
+
+```
+
+    use JSON::Unmarshal
+
+    class SomeClass {
+        has Version $.version is unmarshalled-by(-> $v { Version.new($v) });
+    }
+
+    my $json = '{ "version" : "0.0.1" }';
+
+    my SomeClass $object = unmarshal($json, SomeClass);
+
+	 say $object.version; # -> "v0.0.1"
+
+```
+
+The trait has two variants, one which takes a Routine as above, the other
+a Str representing the name of a method that will be called on the type
+object of the attribute type (such as "new",) both are expected to take
+the value from the JSON as a single argument.
+
 ## Description
 
 This provides a single exported subroutine to create an object from a
