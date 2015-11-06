@@ -1,6 +1,40 @@
 unit module JSON::Unmarshal;
 use JSON::Tiny;
 
+role CustomUnmarshaller {
+    method unmarshal($value, Mu:U $type) {
+        ...
+    }
+}
+
+role CustomUnmarshallerCode does CustomUnmarshaller {
+    has &.unmarshaller is rw;
+
+    method unmarshal($value, $type) {
+        # the dot below is important otherwise it refers
+        # to the accessor method
+        self.unmarshaller.($value);
+    }
+}
+
+role CustomUnmarshallerMethod does CustomUnmarshaller {
+    has Str $.unmarshaller is rw;
+    method unmarshal($value, Mu:U $type) {
+        my $meth = self.unmarshaller;
+        $type."$meth"($value);
+    }
+}
+
+multi sub trait_mod:<is> (Attribute $attr, :&unmarshalled-by!) is export {
+    $attr does CustomUnmarshallerCode;
+    $attr.unmarshaller = &unmarshalled-by;
+}
+
+multi sub trait_mod:<is> (Attribute $attr, Str:D :$unmarshalled-by!) is export {
+    $attr does CustomUnmarshallerMethod;
+    $attr.unmarshaller = $unmarshalled-by;
+}
+
 sub panic($json, $type) {
     die "Cannot unmarshal {$json.perl} to type {$type.perl}"
 }
@@ -48,7 +82,12 @@ multi _unmarshal($json, Any $x) {
     for $x.^attributes -> $attr {
         my $name = $attr.name.substr(2);
         if $json{$name}:exists {
-           %args{$name} = _unmarshal($json{$name}, $attr.type);
+            %args{$name} = do if $attr ~~ CustomUnmarshaller {
+                $attr.unmarshal($json{$name}, $attr.type);
+            }
+            else {
+                _unmarshal($json{$name}, $attr.type);
+            }
         }
     }
     return $x.new(|%args)
@@ -79,3 +118,4 @@ multi _unmarshal($json, Mu) {
 sub unmarshal($json, $obj) is export {
     _unmarshal(from-json($json), $obj)
 }
+# vim: expandtab shiftwidth=4 ft=perl6

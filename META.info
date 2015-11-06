@@ -1,6 +1,6 @@
 {
     "name"        : "JSON::Unmarshal",
-    "version"     : "0.01",
+    "version"     : "0.02",
     "description" : "Turn JSON into objects",
     "provides"    : {
         "JSON::Unmarshal" : "lib/JSON/Unmarshal.pm"
