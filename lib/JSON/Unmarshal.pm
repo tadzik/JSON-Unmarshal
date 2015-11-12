@@ -1,5 +1,6 @@
 unit module JSON::Unmarshal;
 use JSON::Tiny;
+use JSON::Name;
 
 role CustomUnmarshaller {
     method unmarshal($value, Mu:U $type) {
@@ -80,13 +81,19 @@ multi _unmarshal($json, Bool) {
 multi _unmarshal($json, Any $x) {
     my %args;
     for $x.^attributes -> $attr {
-        my $name = $attr.name.substr(2);
-        if $json{$name}:exists {
-            %args{$name} = do if $attr ~~ CustomUnmarshaller {
-                $attr.unmarshal($json{$name}, $attr.type);
+        my $attr-name = $attr.name.substr(2);
+        my $json-name = do if  $attr ~~ JSON::Name::NamedAttribute {
+            $attr.json-name;
+        }
+        else {
+            $attr-name;
+        }
+        if $json{$json-name}:exists {
+            %args{$attr-name} = do if $attr ~~ CustomUnmarshaller {
+                $attr.unmarshal($json{$json-name}, $attr.type);
             }
             else {
-                _unmarshal($json{$name}, $attr.type);
+                _unmarshal($json{$json-name}, $attr.type);
             }
         }
     }
