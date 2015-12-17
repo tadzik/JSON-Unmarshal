@@ -42,10 +42,12 @@ sub panic($json, $type) {
 }
 
 multi _unmarshal($json, Int) {
-    if $json ~~ Int {
-        return Int($json)
-    }
-    panic($json, Int)
+   CATCH {
+      default {
+         panic($json, Int);
+      }
+   }
+   return Int($json);
 }
 
 multi _unmarshal($json, Rat) {
@@ -89,7 +91,7 @@ multi _unmarshal($json, Any $x) {
         else {
             $attr-name;
         }
-        if $json{$json-name}:exists {
+        if $json{$json-name}:exists and $json{$json-name}.defined {
             %args{$attr-name} := do if $attr ~~ CustomUnmarshaller {
                 $attr.unmarshal($json{$json-name}, $attr.type);
             }
