@@ -31,6 +31,30 @@ subtest {
     ok $obj.version.defined, "and it's defined";
     is $obj.version, Version.new("0.0.1"), "and has the right value";
 }, "unmarshalled-by trait with Method name";
+subtest {
+    class CustomArrayAttribute {
+        class Inner {
+            has Str $.name is required;
+        }
+
+        sub unmarshall-inners (@inners) {
+            @inners.map(-> $name { Inner.new(:$name) })
+        }
+
+        has Inner @.inners is unmarshalled-by(&unmarshall-inners);
+    }
+
+    my $json = '{ "inners" : [ "one", "two", "three" ] }';
+    my $obj;
+    lives-ok {
+        $obj = unmarshal $json, CustomArrayAttribute;
+    }, "unmarshal with custom marshaller on positional attribute";
+
+    ok all($obj.inners) ~~ CustomArrayAttribute::Inner, "and all the objects in the array are correct";
+    is-deeply $obj.inners.map( *.name), <one two three>, "and they have their names set correctly";
+
+
+}, "unmarshalled-by on a positional attribute";
 
 done-testing;
 # vim: expandtab shiftwidth=4 ft=perl6
