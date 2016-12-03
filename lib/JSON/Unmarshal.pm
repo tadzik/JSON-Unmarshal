@@ -84,7 +84,11 @@ multi _unmarshal($json, Bool) {
 
 multi _unmarshal($json, Any $x) {
     my %args;
+    my %local-attrs =  $x.^attributes(:local).map({ $_.name => $_.package });
     for $x.^attributes -> $attr {
+        if %local-attrs{$attr.name}:exists && !(%local-attrs{$attr.name} === $attr.package ) {
+            next;
+        }
         my $attr-name = $attr.name.substr(2);
         my $json-name = do if  $attr ~~ JSON::Name::NamedAttribute {
             $attr.json-name;
