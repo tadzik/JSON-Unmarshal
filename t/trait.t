@@ -32,6 +32,26 @@ subtest {
     is $obj.version, Version.new("0.0.1"), "and has the right value";
 }, "unmarshalled-by trait with Method name";
 subtest {
+    class Inner {
+        has Str $.name is required;
+    }
+    class OuterClass {
+        has Inner $.inner;
+    }
+    class OuterSubClass is OuterClass {
+        has Inner $.inner is unmarshalled-by(-> $name { Inner.new(:$name) });
+    }
+
+    my $json = '{ "inner" : "name" }';
+
+    my OuterSubClass $obj;
+
+    lives-ok { $obj = unmarshal($json, OuterSubClass) }, "unmarshall with attrbute trait on sub-class";
+    isa-ok $obj.inner, Inner, "the attribute is the right kind of thing";
+    ok $obj.inner.defined, "and it's defined";
+    is $obj.inner.name, "name", "and has the right value";
+}, "unmarshalled-by trait with inheritance";
+subtest {
     class CustomArrayAttribute {
         class Inner {
             has Str $.name is required;
