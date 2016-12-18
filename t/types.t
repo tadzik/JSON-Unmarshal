@@ -37,11 +37,16 @@ subtest {
     }
 
     my $json = '{ "int" : 42 }';
+    my $json2 = '{ "int" : "42"}';
     my $ret;
 
     lives-ok { $ret = unmarshal($json, IntClass) }, "unmarshal with Int typed attribute";
     isa-ok $ret, IntClass, "it's the right type";
     is $ret.int, 42, "and the correct value";
+    lives-ok { $ret = unmarshal($json2, IntClass) }, "unmarshal with Int typed attribute but IntStr json";
+    isa-ok $ret, IntClass, "it's the right type";
+    is $ret.int, 42, "and the correct value";
+    
 
 }, "Int attribute";
 subtest {

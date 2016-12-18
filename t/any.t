@@ -12,6 +12,7 @@ my @tests = (
  { json => '{ "any-attr" : 4.2 }', value => 4.2, type => Rat },
  { json => '{ "any-attr" : "42" }', value => '42', type => Str },
  { json => '{ "any-attr" : true }', value => True, type => Bool },
+ { json => '{ "any-attr" : null }', value => Any, type => Any },
 );
 
 for @tests -> $test {
