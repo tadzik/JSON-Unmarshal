@@ -15,4 +15,6 @@ lives-ok {
 
 is $res.bla<ble> , 'bli', "and the result is what is expected";
 
+done-testing;
+
 # vim: expandtab shiftwidth=4 ft=perl6
