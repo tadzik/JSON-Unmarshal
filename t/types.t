@@ -1,73 +1,132 @@
-#!perl6
+#!raku
 
 use v6;
 use Test;
 
 use JSON::Unmarshal;
 
-subtest {
-    my class RatClass {
-        has Rat $.rat;
-    }
-
-    my $json = '{ "rat" : 4.2 }';
+sub test-typed($json, Mu \obj-class, Mu $expected, Str :$message is copy, Bool :$is-null) {
+    my $type-name = $expected.^name;
     my $ret;
-
-    lives-ok { $ret = unmarshal($json, RatClass) }, "unmarshal with Rat typed attribute";
-    isa-ok $ret, RatClass, "it's the right type";
-    is $ret.rat, 4.2, "and the correct value";
-
-}, "Rat attribute";
-subtest {
-    my class NumClass {
-        has Num $.num;
+    $message //= "$type-name attribute from " ~ ($json ~~ Str ?? "JSON string" !! "a " ~ $json.^name);
+    subtest $message => {
+        plan 4;
+        lives-ok { $ret = unmarshal($json, obj-class) }, "unmarshal with $type-name typed attribute";
+        isa-ok $ret, obj-class.WHAT, "it's the right object type";
+        if $is-null {
+            nok $ret.attr.defined, "and unefined";
+            isa-ok $ret.attr, $expected.WHAT, "and the correct type";
+        }
+        else {
+            ok $ret.attr.defined, "and defined";
+            is $ret.attr, $expected, "and the correct value";
+        }
+        done-testing;
     }
+}
 
-    my $json = '{ "num" : 4.2 }';
-    my $ret;
+class RatClass {
+    has $.attr;
+}
+class NumClass {
+    has Num $.attr;
+}
+class IntClass {
+    has Int $.attr;
+}
+class BoolClass {
+    has Bool $.attr;
+}
+class StrClass {
+    has Str $.attr;
+}
 
-    lives-ok { $ret = unmarshal($json, NumClass) }, "unmarshal with Num typed attribute";
-    isa-ok $ret, NumClass, "it's the right type";
-    is $ret.num, 4.2, "and the correct value";
+my @tests =
+    [
+        '{ "attr" : 4.2 }',
+        RatClass,
+        4.2,
+    ],
+    [
+        '{ "attr" : 4.2 }',
+        NumClass,
+        4.2,
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntClass,
+        42,
+    ],
+    [
+        '{ "attr" : true }',
+        BoolClass,
+        True,
+    ],
+    [
+        '{ "attr" : false }',
+        BoolClass,
+        False,
+        :message("Bool attribute with False")
+    ],
+    [
+        '{ "attr" : "foo" }',
+        StrClass,
+        "foo",
+    ],
+    [
+        '{ "attr" : null }',
+        StrClass,
+        Str,
+        message => "Str attribute with 'null' in JSON",
+        :is-null,
+    ],
+    [
+        { attr => 4.2 },
+        RatClass,
+        4.2,
+    ],
+    [
+        { attr => 4.2 },
+        NumClass,
+        4.2,
+    ],
+    [
+        { attr => 42 },
+        IntClass,
+        42,
+    ],
+    [
+        { attr => True },
+        BoolClass,
+        True,
+    ],
+    [
+        { attr => False },
+        BoolClass,
+        False,
+        :message("Bool attribute with False in JSON hash")
+    ],
+    [
+        { attr => "foo" },
+        StrClass,
+        "foo",
+    ],
+    [
+        { attr => Nil },
+        StrClass,
+        Str,
+        message => "Str attribute with Nil in JSON hash",
+        :is-null,
+    ],
+    ;
 
-}, "Num attribute";
-subtest {
-    my class IntClass {
-        has Int $.int;
-    }
+plan +@tests;
 
-    my $json = '{ "int" : 42 }';
-    my $ret;
-
-    lives-ok { $ret = unmarshal($json, IntClass) }, "unmarshal with Int typed attribute";
-    isa-ok $ret, IntClass, "it's the right type";
-    is $ret.int, 42, "and the correct value";
-
-}, "Int attribute";
-subtest {
-    my class BoolClass {
-        has Bool $.bool;
-    }
-
-    my $json = '{ "bool" : true }';
-    my $ret;
-
-    lives-ok { $ret = unmarshal($json, BoolClass) }, "unmarshal with Bool typed attribute";
-    isa-ok $ret, BoolClass, "it's the right type";
-    is $ret.bool, True, "and the correct value";
-
-}, "Bool attribute";
-subtest {
-    my class StrClass {
-        has Str $.string;
-    }
-
-    my $json = '{ "string" : null }';
-    my $ret;
-    lives-ok { $ret = unmarshal($json, StrClass) }, "unmarshal with Str type attribute but null in JSON";
-    isa-ok $ret, StrClass, "it's the right type";
-    ok $ret.string ~~ Str && !$ret.string.defined, "and it is an undefined Str";
-}, "Undefined Str";
+for @tests -> @test {
+    my @pos = @test.grep( * !~~ Pair );
+    my %named = |@test.grep( * ~~ Pair );
+    test-typed |@pos, |%named;
+}
 
 done-testing;
 

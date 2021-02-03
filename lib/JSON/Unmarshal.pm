@@ -134,7 +134,9 @@ multi _unmarshal(Any:D $json, Mu) {
     return $json
 }
 
-multi unmarshal($json, Positional $obj) is export {
+proto unmarshal(Any:D, |) is export {*}
+
+multi unmarshal(Str:D $json, Positional $obj) {
     my Any \data = from-json($json);
     if data ~~ Positional {
         return @(_unmarshal($_, $obj.of) for @(data));
@@ -143,7 +145,7 @@ multi unmarshal($json, Positional $obj) is export {
     }
 }
 
-multi unmarshal($json, Associative $obj) is export {
+multi unmarshal(Str:D $json, Associative $obj) {
     my \data = from-json($json);
     if data ~~ Associative {
         return %(for data.kv -> $key, $value {
@@ -154,7 +156,15 @@ multi unmarshal($json, Associative $obj) is export {
     };
 }
 
-multi unmarshal($json, $obj) is export {
+multi unmarshal(Str:D $json, $obj) {
     _unmarshal(from-json($json), $obj)
+}
+
+multi unmarshal(%json, $obj) {
+    _unmarshal(%json, $obj)
+}
+
+multi unmarshal(@json, $obj) {
+    _unmarshal(@json, $obj)
 }
 # vim: expandtab shiftwidth=4 ft=perl6
