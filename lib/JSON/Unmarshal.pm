@@ -1,3 +1,4 @@
+use v6;
 use JSON::Name;
 
 unit module JSON::Unmarshal;
@@ -113,7 +114,7 @@ multi _unmarshal(Any:D $json, Any $x) {
 }
 
 multi _unmarshal($json, @x) {
-    my @ret;
+    my @ret := Array[@x.of].new;
     for $json.list -> $value {
        my $type = @x.of =:= Any ?? $value.WHAT !! @x.of;
        @ret.append(_unmarshal($value, $type));
@@ -122,7 +123,7 @@ multi _unmarshal($json, @x) {
 }
 
 multi _unmarshal($json, %x) {
-   my %ret;
+   my %ret := Hash[%x.of].new;
    for $json.kv -> $key, $value {
       my $type = %x.of =:= Any ?? $value.WHAT !! %x.of;
       %ret{$key} = _unmarshal($value, $type);
@@ -134,7 +135,9 @@ multi _unmarshal(Any:D $json, Mu) {
     return $json
 }
 
-multi unmarshal($json, Positional $obj) is export {
+proto unmarshal(Any:D, |) is export {*}
+
+multi unmarshal(Str:D $json, Positional $obj) {
     my Any \data = from-json($json);
     if data ~~ Positional {
         return @(_unmarshal($_, $obj.of) for @(data));
@@ -143,7 +146,7 @@ multi unmarshal($json, Positional $obj) is export {
     }
 }
 
-multi unmarshal($json, Associative $obj) is export {
+multi unmarshal(Str:D $json, Associative $obj) {
     my \data = from-json($json);
     if data ~~ Associative {
         return %(for data.kv -> $key, $value {
@@ -154,7 +157,15 @@ multi unmarshal($json, Associative $obj) is export {
     };
 }
 
-multi unmarshal($json, $obj) is export {
+multi unmarshal(Str:D $json, $obj) {
     _unmarshal(from-json($json), $obj)
+}
+
+multi unmarshal(%json, $obj) {
+    _unmarshal(%json, $obj)
+}
+
+multi unmarshal(@json, $obj) {
+    _unmarshal(@json, $obj)
 }
 # vim: expandtab shiftwidth=4 ft=perl6
