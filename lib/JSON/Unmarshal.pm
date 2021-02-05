@@ -1,3 +1,4 @@
+use v6;
 use JSON::Name;
 
 unit module JSON::Unmarshal;
@@ -113,7 +114,7 @@ multi _unmarshal(Any:D $json, Any $x) {
 }
 
 multi _unmarshal($json, @x) {
-    my @ret;
+    my @ret := Array[@x.of].new;
     for $json.list -> $value {
        my $type = @x.of =:= Any ?? $value.WHAT !! @x.of;
        @ret.append(_unmarshal($value, $type));
@@ -122,7 +123,7 @@ multi _unmarshal($json, @x) {
 }
 
 multi _unmarshal($json, %x) {
-   my %ret;
+   my %ret := Hash[%x.of].new;
    for $json.kv -> $key, $value {
       my $type = %x.of =:= Any ?? $value.WHAT !! %x.of;
       %ret{$key} = _unmarshal($value, $type);
