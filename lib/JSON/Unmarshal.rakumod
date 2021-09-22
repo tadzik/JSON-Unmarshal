@@ -1,6 +1,8 @@
 use v6;
+
 unit module JSON::Unmarshal;
-use JSON::Name;
+use JSON::Name:ver<0.0.6+>;
+use JSON::OptIn;
 use JSON::Fast;
 
 =begin pod
@@ -98,7 +100,7 @@ our class X::CannotUnmarshal is Exception is export {
     }
 }
 
-role CustomUnmarshaller {
+role CustomUnmarshaller does JSON::OptIn::OptedInAttribute {
     method unmarshal($value, Mu:U $type) {
         ...
     }
@@ -148,18 +150,18 @@ multi sub panic($json, Mu \type, Str $why?) {
         :target($*JSON-UNMARSHAL-TYPE) ).throw
 }
 
-multi _unmarshal(Any:U, Mu $type) {
+multi _unmarshal(Any:U, Mu $type, Bool :$opt-in ) {
     $type;
 }
 
-multi _unmarshal(Any:D $json, Int) {
+multi _unmarshal(Any:D $json, Int, Bool :$opt-in) {
     if $json ~~ Int {
         return Int($json)
     }
     panic($json, Int)
 }
 
-multi _unmarshal(Any:D $json, Rat) {
+multi _unmarshal(Any:D $json, Rat, Bool :$opt-in) {
    CATCH {
       default {
          panic($json, Rat, $_);
@@ -168,14 +170,14 @@ multi _unmarshal(Any:D $json, Rat) {
    return Rat($json);
 }
 
-multi _unmarshal(Any:D $json, Numeric) {
+multi _unmarshal(Any:D $json, Numeric, Bool :$opt-in) {
     if $json ~~ Numeric {
         return Num($json)
     }
     panic($json, Numeric)
 }
 
-multi _unmarshal($json, Str) {
+multi _unmarshal($json, Str, Bool :$opt-in) {
     if $json ~~ Stringy {
         return Str($json)
     }
@@ -184,7 +186,7 @@ multi _unmarshal($json, Str) {
     }
 }
 
-multi _unmarshal(Any:D $json, Bool) {
+multi _unmarshal(Any:D $json, Bool, Bool :$opt-in) {
    CATCH {
       default {
          panic($json, Bool, $_);
@@ -193,13 +195,16 @@ multi _unmarshal(Any:D $json, Bool) {
    return Bool($json);
 }
 
-multi _unmarshal(Any:D $json, Any $obj is raw) {
+multi _unmarshal(Any:D $json, Any $obj is raw, Bool :$opt-in) {
     my %args;
     my \type = $obj.HOW.archetypes.nominalizable ?? $obj.^nominalize !! $obj.WHAT;
     my %local-attrs =  type.^attributes(:local).map({ $_.name => $_.package });
     for type.^attributes -> $attr {
         my $*JSON-UNMARSHAL-ATTR = $attr;
         if %local-attrs{$attr.name}:exists && !(%local-attrs{$attr.name} === $attr.package ) {
+            next;
+        }
+        if $opt-in && $attr !~~ JSON::OptIn::OptedInAttribute {
             next;
         }
         my $attr-name = $attr.name.substr(2);
@@ -222,71 +227,71 @@ multi _unmarshal(Any:D $json, Any $obj is raw) {
                 $json{$json-name}
             }
             else {
-                _unmarshal($json{$json-name}, $attr-type)
+                _unmarshal($json{$json-name}, $attr-type, :$opt-in)
             }
         }
     }
     type.new(|%args)
 }
 
-multi _unmarshal($json, @x) {
+multi _unmarshal($json, @x, Bool :$opt-in) {
     my @ret := Array[@x.of].new;
     for $json.list -> $value {
        my $type = @x.of =:= Any ?? $value.WHAT !! @x.of;
-       @ret.append(_unmarshal($value, $type));
+       @ret.append(_unmarshal($value, $type, :$opt-in));
     }
     return @ret;
 }
 
-multi _unmarshal($json, %x) {
+multi _unmarshal($json, %x, Bool :$opt-in) {
    my %ret := Hash[%x.of].new;
    for $json.kv -> $key, $value {
       my $type = %x.of =:= Any ?? $value.WHAT !! %x.of;
-      %ret{$key} = _unmarshal($value, $type);
+      %ret{$key} = _unmarshal($value, $type, :$opt-in);
    }
    return %ret;
 }
 
-multi _unmarshal(Any:D $json, Mu) {
+multi _unmarshal(Any:D $json, Mu, Bool :$opt-in) {
     return $json
 }
 
 proto unmarshal(Any:D, |) is export {*}
 
-multi unmarshal(Str:D $json, Positional $obj) {
+multi unmarshal(Str:D $json, Positional $obj, Bool :$opt-in) {
     my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
     my Any \data = from-json($json);
     if data ~~ Positional {
-        return @(_unmarshal($_, $obj.of) for @(data));
+        return @(_unmarshal($_, $obj.of, :$opt-in) for @(data));
     } else {
         fail "Unmarshaling to type $obj.^name() requires the json data to be a list of objects.";
     }
 }
 
-multi unmarshal(Str:D $json, Associative $obj) {
+multi unmarshal(Str:D $json, Associative $obj, Bool :$opt-in) {
     my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
     my \data = from-json($json);
     if data ~~ Associative {
         return %(for data.kv -> $key, $value {
-            $key => _unmarshal($value, $obj.of)
+            $key => _unmarshal($value, $obj.of, :$opt-in )
         })
     } else {
         fail "Unmarshaling to type $obj.^name() requires the json data to be an object.";
     };
 }
 
-multi unmarshal(Str:D $json, $obj) {
+multi unmarshal(Str:D $json, $obj, Bool :$opt-in) {
     my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
-    _unmarshal(from-json($json), $obj.WHAT)
+    _unmarshal(from-json($json), $obj.WHAT, :$opt-in)
 }
 
-multi unmarshal(%json, $obj) {
+multi unmarshal(%json, $obj, Bool :$opt-in) {
     my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
-    _unmarshal(%json, $obj.WHAT)
+    _unmarshal(%json, $obj.WHAT, :$opt-in)
 }
 
-multi unmarshal(@json, $obj) {
+multi unmarshal(@json, $obj, Bool :$opt-in) {
     my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
-    _unmarshal(@json, $obj.WHAT)
+    _unmarshal(@json, $obj.WHAT, :$opt-in)
 }
 # vim: expandtab shiftwidth=4 ft=raku

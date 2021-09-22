@@ -8,7 +8,8 @@
   ],
   "depends": [
     "JSON::Fast",
-    "JSON::Name"
+    "JSON::Name:ver<0.0.6+>",
+    "JSON::OptIn"
   ],
   "description": "Turn JSON into objects",
   "license": "Artistic-2.0",
@@ -25,5 +26,5 @@
   ],
   "test-depends": [
   ],
-  "version": "0.10"
+  "version": "0.11"
 }

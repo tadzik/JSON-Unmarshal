@@ -26,6 +26,25 @@ SYNOPSIS
     say $object.string; # -> "string"
     say $object.int;    # -> 42
 
+
+Or explictly opt-in the attributes for deserialization:
+
+    use JSON::Unmarshal;
+    use JSON::OptIn;
+
+    class SomeClass {
+        has Str $.string  = "original";
+        has Int $.int     is json;
+    }
+
+    my $json = '{ "string" : "string", "int" : 42 }';
+
+    my SomeClass $object = unmarshal($json, SomeClass, :opt-in);
+
+    say $object.string; # -> "original"
+    say $object.int;    # -> 42
+
+
 It is also possible to use a trait to control how the value is unmarshalled:
 
     use JSON::Unmarshal
@@ -45,9 +64,9 @@ The trait has two variants, one which takes a Routine as above, the other a Str 
 DESCRIPTION
 ===========
 
-
-
 This provides a single exported subroutine to create an object from a JSON representation of an object.
+
+It only initialises the "public" attributes (that is those with accessors created by declaring them with the '.' twigil.) Attributes without acccessors are ignored. By default *all* the public attributes present in the JSON will be initialised, which may not be ideal if you are accepting JSON from a source outside of your control (such as some http API,) and/or there are attributes which are lazily built from other other data:  if the `:opt-in` adverb is passed to `unmarshal` only those attributes marked explicitly with the `is json` trait (from `JSON::OptIn`,) or have the traits `json-name` ( from `JSON::Name`,) or `unmarshalled-by` will be initialised from the JSON.
 
 It only initialises the "public" attributes (that is those with accessors created by declaring them with the '.' twigil. Attributes without acccessors are ignored.
 
