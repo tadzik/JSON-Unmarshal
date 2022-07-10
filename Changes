@@ -1,4 +1,6 @@
 Revision history for JSON-Unmarshal
 
 {{$NEXT}}
-    - Initial version
+    - Support for nominalizable types like definites (smiley types) and coercions
+    - Support for input from pre-desrialized data like hashes or arrays obtained from an earlier from-json call
+    - Throw specialized `JSON::Unmarshal::X::CannotUnmarshall` exception on errors with more detailed information about the error
