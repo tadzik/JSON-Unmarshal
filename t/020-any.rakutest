@@ -1,4 +1,4 @@
-#!perl6
+#!raku
 use v6;
 use Test;
 use JSON::Unmarshal;
@@ -22,4 +22,4 @@ for @tests -> $test {
     isa-ok $ret.any-attr, $test<type>, "and it is the right type";
 }
 done-testing;
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

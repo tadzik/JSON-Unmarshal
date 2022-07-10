@@ -1,8 +1,19 @@
 use v6;
-use JSON::Name;
-
 unit module JSON::Unmarshal;
+use JSON::Name;
 use JSON::Fast;
+
+our class X::CannotUnmarshal is Exception is export {
+    has Attribute:D $.attribute is required;
+    has Any:D $.json is required;
+    has Mu:U $.type is required;
+    has Mu:U $.target is required;
+    has Str $.why;
+    method message {
+        "Cannot unmarshal {$.json.raku} into type '{$.type.^name}' for attribute {$.attribute.name} of '{$.target.^name}'"
+        ~ ($.why andthen ": $_" orelse "")
+    }
+}
 
 role CustomUnmarshaller {
     method unmarshal($value, Mu:U $type) {
@@ -38,8 +49,13 @@ multi sub trait_mod:<is> (Attribute $attr, Str:D :$unmarshalled-by!) is export {
     $attr.unmarshaller = $unmarshalled-by;
 }
 
-sub panic($json, $type) {
-    die "Cannot unmarshal {$json.perl} to type {$type.perl}"
+sub panic($json, Mu \type, Str $why?) {
+    X::CannotUnmarshal.new(
+        :$json,
+        :type(type.WHAT),
+        :attribute($*JSON-UNMARSHAL-ATTR),
+        :$why,
+        :target($*JSON-UNMARSHAL-TYPE) ).throw
 }
 
 multi _unmarshal(Any:U, Mu $type) {
@@ -87,10 +103,11 @@ multi _unmarshal(Any:D $json, Bool) {
    return Bool($json);
 }
 
-multi _unmarshal(Any:D $json, Any $x) {
+multi _unmarshal(Any:D $json, Any $x is raw) {
     my %args;
     my %local-attrs =  $x.^attributes(:local).map({ $_.name => $_.package });
     for $x.^attributes -> $attr {
+        my $*JSON-UNMARSHAL-ATTR = $attr;
         if %local-attrs{$attr.name}:exists && !(%local-attrs{$attr.name} === $attr.package ) {
             next;
         }
@@ -102,11 +119,19 @@ multi _unmarshal(Any:D $json, Any $x) {
             $attr-name;
         }
         if $json{$json-name}:exists {
+            my Mu $attr-type := $attr.type;
             %args{$attr-name} := do if $attr ~~ CustomUnmarshaller {
-                $attr.unmarshal($json{$json-name}, $attr.type);
+                $attr.unmarshal($json{$json-name}, $attr-type)
+            }
+            elsif $attr-type.HOW.archetypes.nominalizable
+                && $attr-type.HOW.archetypes.coercive
+                && $json{$json-name} ~~ $attr-type
+            {
+                # No need to unmarshal, coercion will take care of it
+                $json{$json-name}
             }
             else {
-                _unmarshal($json{$json-name}, $attr.type);
+                _unmarshal($json{$json-name}, $attr-type)
             }
         }
     }
@@ -138,6 +163,7 @@ multi _unmarshal(Any:D $json, Mu) {
 proto unmarshal(Any:D, |) is export {*}
 
 multi unmarshal(Str:D $json, Positional $obj) {
+    my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
     my Any \data = from-json($json);
     if data ~~ Positional {
         return @(_unmarshal($_, $obj.of) for @(data));
@@ -147,6 +173,7 @@ multi unmarshal(Str:D $json, Positional $obj) {
 }
 
 multi unmarshal(Str:D $json, Associative $obj) {
+    my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
     my \data = from-json($json);
     if data ~~ Associative {
         return %(for data.kv -> $key, $value {
@@ -158,14 +185,17 @@ multi unmarshal(Str:D $json, Associative $obj) {
 }
 
 multi unmarshal(Str:D $json, $obj) {
-    _unmarshal(from-json($json), $obj)
+    my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
+    _unmarshal(from-json($json), $obj.WHAT)
 }
 
 multi unmarshal(%json, $obj) {
-    _unmarshal(%json, $obj)
+    my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
+    _unmarshal(%json, $obj.WHAT)
 }
 
 multi unmarshal(@json, $obj) {
-    _unmarshal(@json, $obj)
+    my $*JSON-UNMARSHAL-TYPE := $obj.WHAT;
+    _unmarshal(@json, $obj.WHAT)
 }
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

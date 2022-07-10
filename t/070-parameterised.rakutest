@@ -1,4 +1,4 @@
-#!perl6
+#!raku
 
 use Test;
 use JSON::Unmarshal;
@@ -17,4 +17,4 @@ is $res.bla<ble> , 'bli', "and the result is what is expected";
 
 done-testing;
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

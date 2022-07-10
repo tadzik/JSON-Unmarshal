@@ -1,12 +1,21 @@
 {
-	"perl"        : "6.c",
-    "name"        : "JSON::Unmarshal",
-    "license"     : "MIT",
-    "version"     : "0.08",
-    "description" : "Turn JSON into objects",
-    "provides"    : {
-        "JSON::Unmarshal" : "lib/JSON/Unmarshal.pm"
-    },
-    "depends"     : ["JSON::Fast", "JSON::Name"],
-    "source-url"  : "git://github.com/tadzik/JSON-Unmarshal.git"
+  "name": "JSON::Unmarshal",
+  "description": "Turn JSON into objects",
+  "version": "0.08",
+  "perl": "6.c",
+  "authors": [
+    "Tadeusz Sośnierz",
+    "Raku Community"
+  ],
+  "auth": "zef:raku-community-modules",
+  "depends": [
+    "JSON::Fast",
+    "JSON::Name"
+  ],
+  "provides": {
+    "JSON::Unmarshal": "lib/JSON/Unmarshal.rakumod"
+  },
+  "license": "Artistic-2.0",
+  "source-url": "https://github.com/raku-community-modules/JSON-Unmarshal.git",
+  "raku": "6.c"
 }

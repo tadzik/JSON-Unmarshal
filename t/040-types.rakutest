@@ -11,6 +11,7 @@ sub test-typed($json, Mu \obj-class, Mu $expected, Str :$message is copy, Bool :
     $message //= "$type-name attribute from " ~ ($json ~~ Str ?? "JSON string" !! "a " ~ $json.^name);
     subtest $message => {
         plan 4;
+        $ret = unmarshal($json, obj-class);
         lives-ok { $ret = unmarshal($json, obj-class) }, "unmarshal with $type-name typed attribute";
         isa-ok $ret, obj-class.WHAT, "it's the right object type";
         if $is-null {
@@ -40,6 +41,18 @@ class BoolClass {
 class StrClass {
     has Str $.attr;
 }
+class IntDClass {
+    has Int:D $.attr is required;
+}
+class IntCoerced {
+    has Int() $.attr;
+}
+class IntDCoerced {
+    has Int:D() $.attr is required;
+}
+class VersionDCoerced {
+    has Version:D() $.attr is required;
+}
 
 my @tests =
     [
@@ -56,6 +69,30 @@ my @tests =
         '{ "attr" : 42 }',
         IntClass,
         42,
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntDClass,
+        42,
+        :message("Int:D attribute"),
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntCoerced,
+        42,
+        :message("Int() attribute"),
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntDCoerced,
+        42,
+        :message("Int:D() attribute"),
+    ],
+    [
+        '{ "attr" : "0.12.42" }',
+        VersionDCoerced,
+        v0.12.42,
+        :message("Version:D() attribute")
     ],
     [
         '{ "attr" : true }',
@@ -120,7 +157,7 @@ my @tests =
     ],
     ;
 
-plan +@tests;
+plan 2+@tests;
 
 for @tests -> @test {
     my @pos = @test.grep( * !~~ Pair );
@@ -128,6 +165,21 @@ for @tests -> @test {
     test-typed |@pos, |%named;
 }
 
+throws-like
+    { unmarshal('{"attr": null}', IntDClass ) },
+    X::TypeCheck::Assignment,
+    "null into a definite dies";
+
+class NastyCoercive {
+    has Int(Rat) $.attr;
+}
+
+throws-like
+    { unmarshal('{"attr": "13"}', NastyCoercive) },
+    X::CannotUnmarshal,
+    :message(q«Cannot unmarshal "13" into type 'Int' for attribute $!attr of 'NastyCoercive'»),
+    "unmarshalling into a wrong type throws";
+
 done-testing;
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku
