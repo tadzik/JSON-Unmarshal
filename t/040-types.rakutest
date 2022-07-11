@@ -4,7 +4,6 @@ use v6;
 use Test;
 
 use JSON::Unmarshal;
-use JSON::Class;
 
 sub test-typed($json, Mu \obj-class, Mu $expected, Str :$message is copy, Bool :$is-null) {
     my $type-name = $expected.^name;
@@ -54,7 +53,7 @@ class IntDCoerced {
 class VersionDCoerced {
     has Version:D() $.attr is required;
 }
-class DateTimeDClass does JSON::Class {
+class DateTimeDClass {
     has DateTime:D $.attr is required;
 }
 
