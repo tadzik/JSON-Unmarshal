@@ -132,7 +132,14 @@ multi sub trait_mod:<is> (Attribute $attr, Str:D :$unmarshalled-by!) is export {
     $attr.unmarshaller = $unmarshalled-by;
 }
 
-sub panic($json, Mu \type, Str $why?) {
+proto sub panic(Any, Mu, |) {*}
+multi sub panic($json, Mu \type, X::CannotUnmarshal:D $ex) {
+    $ex.rethrow
+}
+multi sub panic($json, Mu \type, Exception:D $ex) {
+    samewith($json, type, $ex.message)
+}
+multi sub panic($json, Mu \type, Str $why?) {
     X::CannotUnmarshal.new(
         :$json,
         :type(type.WHAT),
@@ -155,7 +162,7 @@ multi _unmarshal(Any:D $json, Int) {
 multi _unmarshal(Any:D $json, Rat) {
    CATCH {
       default {
-         panic($json, Rat);
+         panic($json, Rat, $_);
       }
    }
    return Rat($json);
@@ -180,16 +187,17 @@ multi _unmarshal($json, Str) {
 multi _unmarshal(Any:D $json, Bool) {
    CATCH {
       default {
-         panic($json, Bool);
+         panic($json, Bool, $_);
       }
    }
    return Bool($json);
 }
 
-multi _unmarshal(Any:D $json, Any $x is raw) {
+multi _unmarshal(Any:D $json, Any $obj is raw) {
     my %args;
-    my %local-attrs =  $x.^attributes(:local).map({ $_.name => $_.package });
-    for $x.^attributes -> $attr {
+    my \type = $obj.HOW.archetypes.nominalizable ?? $obj.^nominalize !! $obj.WHAT;
+    my %local-attrs =  type.^attributes(:local).map({ $_.name => $_.package });
+    for type.^attributes -> $attr {
         my $*JSON-UNMARSHAL-ATTR = $attr;
         if %local-attrs{$attr.name}:exists && !(%local-attrs{$attr.name} === $attr.package ) {
             next;
@@ -218,7 +226,7 @@ multi _unmarshal(Any:D $json, Any $x is raw) {
             }
         }
     }
-    return $x.new(|%args)
+    type.new(|%args)
 }
 
 multi _unmarshal($json, @x) {

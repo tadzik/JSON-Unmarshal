@@ -4,6 +4,7 @@ use v6;
 use Test;
 
 use JSON::Unmarshal;
+use JSON::Class;
 
 sub test-typed($json, Mu \obj-class, Mu $expected, Str :$message is copy, Bool :$is-null) {
     my $type-name = $expected.^name;
@@ -52,6 +53,9 @@ class IntDCoerced {
 }
 class VersionDCoerced {
     has Version:D() $.attr is required;
+}
+class DateTimeDClass does JSON::Class {
+    has DateTime:D $.attr is required;
 }
 
 my @tests =
@@ -116,6 +120,12 @@ my @tests =
         Str,
         message => "Str attribute with 'null' in JSON",
         :is-null,
+    ],
+    [
+        '{ "attr": { "daycount": 59770, "month": 7, "timezone": -14400, "formatter": null, "hour": 20, "minute": 32, "year": 2022, "day": 10, "second": 12.345e0 } }',
+        DateTimeDClass,
+        DateTime.new(2022,7,10,20,32,12.345e0,:timezone(-14400)),
+        :message("DateTime as a definite"),
     ],
     [
         { attr => 4.2 },
