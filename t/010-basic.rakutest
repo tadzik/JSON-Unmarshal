@@ -90,4 +90,4 @@ is $p.hash<bool>, True;
 is $p.hash<rat>, 42.3;
 
 done-testing;
-# vim: expandtab shiftwidth=4 ft=perl
+# vim: expandtab shiftwidth=4 ft=raku

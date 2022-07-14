@@ -1,4 +1,4 @@
-#!perl6
+#!raku
 use v6;
 use Test;
 use JSON::Unmarshal;
@@ -77,4 +77,4 @@ subtest {
 }, "unmarshalled-by on a positional attribute";
 
 done-testing;
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

@@ -1,0 +1,11 @@
+Revision history for JSON-Unmarshal
+
+{{$NEXT}}
+
+0.10  2022-07-10T20:49:14-04:00
+    - Fix a problem with nominalizables when their nominal is a non-default class
+
+0.09  2022-07-10T19:17:33-04:00
+    - Support for nominalizable types like definites (smiley types) and coercions
+    - Support for input from pre-desrialized data like hashes or arrays obtained from an earlier from-json call
+    - Throw specialized `JSON::Unmarshal::X::CannotUnmarshall` exception on errors with more detailed information about the error

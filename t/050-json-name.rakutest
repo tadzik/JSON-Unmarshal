@@ -1,4 +1,4 @@
-#!perl6
+#!raku
 
 use v6;
 use lib 'lib';
@@ -21,4 +21,4 @@ lives-ok { $obj = unmarshal($json, TestClass) }, "Unmarshal object with a json-n
 is $obj.nice-name,"some value we want", "and we got the key back with the json name";
 
 done-testing;
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

@@ -1,0 +1,194 @@
+#!raku
+
+use v6;
+use Test;
+
+use JSON::Unmarshal;
+
+sub test-typed($json, Mu \obj-class, Mu $expected, Str :$message is copy, Bool :$is-null) {
+    my $type-name = $expected.^name;
+    my $ret;
+    $message //= "$type-name attribute from " ~ ($json ~~ Str ?? "JSON string" !! "a " ~ $json.^name);
+    subtest $message => {
+        plan 4;
+        $ret = unmarshal($json, obj-class);
+        lives-ok { $ret = unmarshal($json, obj-class) }, "unmarshal with $type-name typed attribute";
+        isa-ok $ret, obj-class.WHAT, "it's the right object type";
+        if $is-null {
+            nok $ret.attr.defined, "and unefined";
+            isa-ok $ret.attr, $expected.WHAT, "and the correct type";
+        }
+        else {
+            ok $ret.attr.defined, "and defined";
+            is $ret.attr, $expected, "and the correct value";
+        }
+        done-testing;
+    }
+}
+
+class RatClass {
+    has $.attr;
+}
+class NumClass {
+    has Num $.attr;
+}
+class IntClass {
+    has Int $.attr;
+}
+class BoolClass {
+    has Bool $.attr;
+}
+class StrClass {
+    has Str $.attr;
+}
+class IntDClass {
+    has Int:D $.attr is required;
+}
+class IntCoerced {
+    has Int() $.attr;
+}
+class IntDCoerced {
+    has Int:D() $.attr is required;
+}
+class VersionDCoerced {
+    has Version:D() $.attr is required;
+}
+class DateTimeDClass {
+    has DateTime:D $.attr is required;
+}
+
+my @tests =
+    [
+        '{ "attr" : 4.2 }',
+        RatClass,
+        4.2,
+    ],
+    [
+        '{ "attr" : 4.2 }',
+        NumClass,
+        4.2,
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntClass,
+        42,
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntDClass,
+        42,
+        :message("Int:D attribute"),
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntCoerced,
+        42,
+        :message("Int() attribute"),
+    ],
+    [
+        '{ "attr" : 42 }',
+        IntDCoerced,
+        42,
+        :message("Int:D() attribute"),
+    ],
+    [
+        '{ "attr" : "0.12.42" }',
+        VersionDCoerced,
+        v0.12.42,
+        :message("Version:D() attribute")
+    ],
+    [
+        '{ "attr" : true }',
+        BoolClass,
+        True,
+    ],
+    [
+        '{ "attr" : false }',
+        BoolClass,
+        False,
+        :message("Bool attribute with False")
+    ],
+    [
+        '{ "attr" : "foo" }',
+        StrClass,
+        "foo",
+    ],
+    [
+        '{ "attr" : null }',
+        StrClass,
+        Str,
+        message => "Str attribute with 'null' in JSON",
+        :is-null,
+    ],
+    [
+        '{ "attr": { "daycount": 59770, "month": 7, "timezone": -14400, "formatter": null, "hour": 20, "minute": 32, "year": 2022, "day": 10, "second": 12.345e0 } }',
+        DateTimeDClass,
+        DateTime.new(2022,7,10,20,32,12.345e0,:timezone(-14400)),
+        :message("DateTime as a definite"),
+    ],
+    [
+        { attr => 4.2 },
+        RatClass,
+        4.2,
+    ],
+    [
+        { attr => 4.2 },
+        NumClass,
+        4.2,
+    ],
+    [
+        { attr => 42 },
+        IntClass,
+        42,
+    ],
+    [
+        { attr => True },
+        BoolClass,
+        True,
+    ],
+    [
+        { attr => False },
+        BoolClass,
+        False,
+        :message("Bool attribute with False in JSON hash")
+    ],
+    [
+        { attr => "foo" },
+        StrClass,
+        "foo",
+    ],
+    [
+        { attr => Nil },
+        StrClass,
+        Str,
+        message => "Str attribute with Nil in JSON hash",
+        :is-null,
+    ],
+    ;
+
+plan 2+@tests;
+
+for @tests -> @test {
+    my @pos = @test.grep( * !~~ Pair );
+    my %named = |@test.grep( * ~~ Pair );
+    test-typed |@pos, |%named;
+}
+
+throws-like
+    { unmarshal('{"attr": null}', IntDClass ) },
+    X::TypeCheck::Assignment,
+    "null into a definite dies";
+
+class NastyCoercive {
+    has Int(Rat) $.attr;
+}
+
+throws-like
+    { unmarshal('{"attr": "13"}', NastyCoercive) },
+    X::CannotUnmarshal,
+    :message(q«Cannot unmarshal "13" into type 'Int' for attribute $!attr of 'NastyCoercive'»),
+    "unmarshalling into a wrong type throws";
+
+done-testing;
+
+# vim: expandtab shiftwidth=4 ft=raku
